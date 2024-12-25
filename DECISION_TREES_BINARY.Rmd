@@ -1,0 +1,124 @@
+---
+title: "Decision tree -binary classification"
+author: "LAVANYA B"
+output:
+  html_document: default
+  pdf_document: default
+---
+
+```{r}
+youth_data=load("C:/Users/bunad/OneDrive/Desktop/SPRING 2024/MACHINE LEARNING 2/youth_data.Rdata")
+youth_data=df
+```
+
+
+```{r}
+cleaned_youth_data=na.omit(youth_data)
+
+```
+
+```{r}
+cleaned_youth_data_subset=df[,c(demographic_cols,youth_experience_cols,'alcflag')]
+train=sample(1:nrow(cleaned_youth_data_subset),0.7*nrow(cleaned_youth_data_subset))
+training_data_binary=cleaned_youth_data_subset[train,]
+testing_data_binary=cleaned_youth_data_subset[-train, ]
+```
+
+```{r}
+library(tree)
+binary_tree=tree(alcflag~.,data=training_data_binary)
+plot(binary_tree)
+text(binary_tree,pretty = 0)
+binary_tree
+
+```
+
+```{r}
+predict_binary=predict(binary_tree,testing_data_binary,type='class')
+table(predict_binary,testing_data_binary$alcflag)
+mean(predict_binary==testing_data_binary$alcflag)
+```
+
+```{r}
+cv_binary=cv.tree(binary_tree,FUN=prune.misclass)
+names(cv_binary)
+cv_binary
+                  
+```
+```{r}
+par(mfrow = c(1, 2))
+plot(cv_binary$size, cv_binary$dev, type = "b")
+plot(cv_binary$k, cv_binary$dev, type = "b")
+
+```
+
+```{r}
+prune_binary <- prune.misclass(binary_tree, best = 3)
+plot(prune_binary)
+text(prune_binary, pretty = 0)
+prune_binary
+```
+
+```{r}
+prune_binary_prediction = predict(prune_binary, testing_data_binary,type = "class")
+table(prune_binary_prediction, testing_data_binary$alcflag)
+mean(prune_binary_prediction == testing_data_binary$alcflag)
+
+```
+```{r}
+missing_values=colSums(is.na(training_data_binary))
+missing_values
+```
+
+
+# Bagging
+
+```{r}
+library(randomForest)
+training_data_binary_clean=na.omit(training_data_binary)
+bagging_binary <- randomForest(alcflag ~ ., data = training_data_binary_clean,
+     mtry = floor(sqrt(ncol(training_data_binary_clean))), importance = TRUE)
+bagging_binary
+
+```
+
+```{r}
+bagging_binary_prediction = predict(bagging_binary, newdata = testing_data_binary, type = "class")
+table(bagging_binary_prediction,testing_data_binary$alcflag)
+mean(bagging_binary_prediction== testing_data_binary$alcflag,na.rm=TRUE)
+```
+
+```{r}
+importance_bagging_binary <- importance(bagging_binary)
+top_10 <- head(importance_bagging_binary, 10)
+top_10
+varImpPlot(bagging_binary, n.var = 10, sort = TRUE, main = "Important variables of binary classification(Top 10)")
+
+```
+
+
+#Random Forest
+
+```{r}
+set.seed(1)
+randomforest_binary <- randomForest(alcflag ~ ., data = training_data_binary_clean, mtry = sqrt(ncol(training_data_binary_clean)), ntree = 500, importance = TRUE)
+randomforest_binary
+
+```
+
+```{r}
+yhat_randomforest_binary <- predict(randomforest_binary, newdata = testing_data_binary,type='class')
+mean(yhat_randomforest_binary == testing_data_binary$alcflag,na.rm=TRUE)
+```
+
+```{r}
+importance_rf_binary <- importance(randomforest_binary)
+top_10 <- head(importance_rf_binary, 10)
+top_10
+varImpPlot(randomforest_binary, n.var = 10, sort = TRUE, main = "Important variables of binary classification(Top 10)")
+
+```
+
+
+
+

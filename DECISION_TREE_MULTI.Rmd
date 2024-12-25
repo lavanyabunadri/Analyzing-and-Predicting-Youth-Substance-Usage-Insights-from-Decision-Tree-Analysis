@@ -1,0 +1,143 @@
+---
+title: "Decision tree- multi class classification"
+author: "LAVANYA B"
+output: html_document
+---
+
+
+```{r}
+youth_data=load("C:/Users/bunad/OneDrive/Desktop/SPRING 2024/MACHINE LEARNING 2/youth_data.Rdata")
+youth_data=df
+```
+
+
+```{r}
+cleaned_youth_data=na.omit(youth_data)
+
+```
+
+```{r}
+cleaned_youth_data_subset_multi=df[,c(demographic_cols,youth_experience_cols,'alcydays')]
+cleaned_youth_data_subset_multi$alcydays <- as.factor(cleaned_youth_data_subset_multi$alcydays)
+length(cleaned_youth_data_subset_multi)
+train=sample(1:nrow(cleaned_youth_data_subset_multi),0.7*nrow(cleaned_youth_data_subset_multi))
+training_data_multi=cleaned_youth_data_subset_multi[train,]
+testing_data_multi=cleaned_youth_data_subset_multi[-train,]
+                                            
+```
+```{r}
+library(tree)
+multi_tree <- tree(alcydays ~.,training_data_multi)
+multi_tree
+
+```
+
+```{r}
+summary(multi_tree)
+
+```
+
+```{r}
+plot(multi_tree)
+text(multi_tree, pretty = 0)
+```
+
+```{r}
+predict_multi <- predict(multi_tree, testing_data_multi, type = 'class')
+table(predict_multi, testing_data_multi$alcydays)
+```
+
+```{r}
+mean(predict_multi == testing_data_multi$alcydays)
+
+```
+
+```{r}
+cv_multi=cv.tree(multi_tree,FUN=prune.misclass)
+names(cv_multi)
+cv_multi
+```
+
+
+```{r}
+par(mfrow = c(1, 2))
+plot(cv_multi$size, cv_multi$dev, type = "b")
+plot(cv_multi$k, cv_multi$dev, type = "b")
+
+```
+
+```{r}
+plot(cv_multi)
+```
+
+```{r}
+prune_multi <- prune.misclass(multi_tree, best = 3)
+plot(prune_multi)
+text(prune_multi, pretty = 0)
+prune_multi
+```
+```{r}
+prune_multi_prediction = predict(prune_multi, testing_data_multi,type = "class")
+table(prune_multi_prediction, testing_data_multi$alcydays)
+mean(prune_multi_prediction == testing_data_multi$alcydays)
+```
+
+# Bagging
+
+```{r}
+library(randomForest)
+library(tree)
+training_data_multi_clean=na.omit(training_data_multi)
+bagging_multi <- randomForest(alcydays ~ ., data = training_data_multi_clean,
+     mtry = floor(sqrt(ncol(training_data_multi_clean))), importance = TRUE)
+bagging_multi
+```
+
+
+```{r}
+bagging_multi_prediction = predict(bagging_multi, newdata = testing_data_multi, type = "class")
+table(bagging_multi_prediction,testing_data_multi$alcydays)
+mean(bagging_multi_prediction== testing_data_multi$alcydays,na.rm=TRUE)
+```
+
+```{r}
+importance_bagging_multi <- importance(bagging_multi)
+top_10 <- head(importance_bagging_multi, 10)
+top_10
+
+```
+```{r}
+varImpPlot(bagging_multi, n.var = 10, sort = TRUE, main = "Important variables of binary classification(Top 10)")
+
+```
+
+
+
+#Random Forest
+
+```{r}
+set.seed(1)
+randomforest_multi <- randomForest(alcydays ~ ., data = training_data_multi_clean, mtry =sqrt(ncol(training_data_multi_clean)), ntree = 500, importance = TRUE)
+randomforest_multi
+
+```
+
+
+```{r}
+yhat_randomforest_multi <- predict(randomforest_multi, newdata = testing_data_multi,type='class')
+mean(yhat_randomforest_multi == testing_data_multi$alcydays,na.rm=TRUE)
+```
+
+```{r}
+importance_rf_multi <- importance(randomforest_multi)
+top_10 <- head(importance_rf_multi, 10)
+top_10
+
+```
+
+```{r}
+varImpPlot(randomforest_multi, n.var = 10, sort = TRUE, main = "Important variables of multi-class classification(Top 10)")
+
+```
+
+
